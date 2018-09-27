@@ -9,6 +9,9 @@ var morgan = require('morgan');
 var bodyParser = require('body-parser');
 var methodOverride = require('method-override');
 var router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const DIR = './views/uploads';
 
 
 //CORS Middleware
@@ -26,12 +29,12 @@ app.use(function (req, res, next) {
 const requestConnection = mysql.createConnection({
     host: 'localhost',
     user:  'root',
-    password: '',
+    password: 'Pune123##',
     database:'ag',
 });
 
 
-app.use(express.static('./public')); 		// set the static files location /public/img will be /img for users
+app.use(express.static('./views')); 		// set the static files location /public/img will be /img for users
 app.use(morgan('dev')); // log every request to the console
 app.use(bodyParser.urlencoded({'extended': 'true'})); // parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // parse application/json
@@ -47,6 +50,48 @@ console.log("App listening on port " + port);
 //router.post('/register',login.register);
 //router.post('/login',login.login);
 
+let storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, DIR);
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.fieldname + '-' + Date.now() + '.' + path.extname(file.originalname));
+    }
+});
+
+let upload = multer({storage: storage});
+
+app.post('/api/upload',upload.single('vehicleDoc'), function (req, res) {
+    if (!req.file) {
+        console.log("No file received");
+        return res.send({
+          success: false
+        });
+    
+      } else {
+
+        //console.log(req);
+        console.log("file name "+req.file.filename);
+        return res.send(req.file.filename)
+      }
+});
+
+app.get('/views/uploads',function(req,res){
+    console.log(req.query.imagename);
+    //res.send(JSON.stringify(req.params) );
+    fs.readFile(DIR+'/'+req.query.imagename, function (err, content) {
+        if (err) {
+            res.writeHead(400, {'Content-type':'text/html'})
+            console.log(err);
+            res.end("No such image");    
+        } else {
+            //specify the content type in the response will be an image
+            res.writeHead(200,{'Content-type':'*/*'});
+            res.end(content);
+        }
+    });
+    
+});
 requestConnection.connect(function(err){
     if (err) throw err;
     console.log("Connected to DB");
@@ -172,8 +217,8 @@ requestConnection.connect(function(err){
         console.log(req.body);
 		var dateOfAddition = new Date();
         var b= req.body;
-        var queryProjects = "INSERT INTO `ag_vehicle`(`vehicle_brand`, `vehicle_number`, `fuel_type`, `driver_name`, `driver_mobile_number`, `initial_reading`, `date_of_addition`, `puc_doc`, `registation_doc`, `insurence_doc`)"+
-        "VALUES('"+b.vehicle_brand+"','"+b.vehicle_number+"','"+b.fuel_type+"','"+b.driver_name+"','"+b.driver_mobile_number+"','"+b.initial_reading+"','"+dateOfAddition+"','','','')";
+        var queryProjects = "INSERT INTO `ag_vehicle`(`vehicle_brand`, `vehicle_number`, `fuel_type`, `driver_name`, `driver_mobile_number`, `initial_reading`, `date_of_addition`, `puc_doc`, `registation_doc`, `insurence_doc`,`tc`,`fitness`,`invoice`)"+
+        "VALUES('"+b.vehicle_brand+"','"+b.vehicle_number+"','"+b.fuel_type+"','"+b.driver_name+"','"+b.driver_mobile_number+"','"+b.initial_reading+"','"+dateOfAddition+"','"+b.puc+"','"+b.rc+"','"+b.ic+"','"+b.tc+"','"+b.fc+"','"+b.invoice+"')";
         console.log(queryProjects);
 		requestConnection.query(queryProjects,(err,results,fields)=>{
             if(err){
@@ -210,8 +255,8 @@ requestConnection.connect(function(err){
     app.post('/api/addReading',(req,res)=>{
         console.log(req.body);
         var b= req.body;
-        var queryProjects = "INSERT INTO `vehicle_daily_record`(`vehicle_number`, `date_of_journey`, `day_start_reading`, `day_end_reading`, `location-visited`, `mobile_no_driver`, `day_kms`, `maintenance`, `expense_for_maintenance`)"+
-        "VALUES('"+b.vehicle_no+"','"+b.date_of_journey+"','"+b.day_start_reading+"','"+b.day_end_reading+"','"+b.locations_visited+"','"+b.drivers_mobile_no+"','"+b.day_kms+"','"+b.maintenance+"','"+b.expense_for_maintenance+"')";
+        var queryProjects = "INSERT INTO `vehicle_daily_record`(`vehicle_number`, `date_of_journey`, `day_start_reading`, `day_end_reading`, `location-visited`, `mobile_no_driver`, `day_kms`, `remark`, `time`)"+
+        "VALUES('"+b.vehicle_no+"','"+b.date_of_journey+"','"+b.day_start_reading+"','"+b.day_end_reading+"','"+b.locations_visited+"','"+b.drivers_mobile_no+"','"+b.day_kms+"','"+b.remark+"','"+b.time+"')";
         console.log(queryProjects);
 		requestConnection.query(queryProjects,(err,results,fields)=>{
             if(err){
@@ -232,6 +277,19 @@ requestConnection.connect(function(err){
             }
             else{
                 res.send(results);
+            }
+        })
+    })
+
+    app.get('/api/getLastRecord',(req,res)=>{
+        var vhn = req.query.vhn;
+        var queryLR = "SELECT * FROM `vehicle_daily_record` WHERE vehicle_number= '"+vhn+"' ORDER BY id DESC LIMIT 1";
+        requestConnection.query(queryLR,(err,results,fields)=>{
+            if(err){
+                console.log(err);
+            }
+            else{
+                res.send(results[0]);
             }
         })
     })
