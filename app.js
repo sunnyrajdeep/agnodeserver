@@ -29,7 +29,7 @@ app.use(function (req, res, next) {
 const requestConnection = mysql.createConnection({
     host: 'localhost',
     user:  'root',
-    password: 'Pune123##',
+    password: '',
     database:'ag',
 });
 
@@ -93,7 +93,9 @@ app.get('/views/uploads',function(req,res){
     
 });
 requestConnection.connect(function(err){
-    if (err) throw err;
+    if (err) {
+        console.log("Mysql connection Error: "+ err);
+    }else{
     console.log("Connected to DB");
     app.get('/api/tickets',function(req,res){
         console.log(req.hostname);
@@ -110,35 +112,35 @@ requestConnection.connect(function(err){
 
     app.post('/register',function(req,res){
         console.log("req",req.body);
-       var today = new Date();
-       var users={
-         "username":req.body.username,
-         "password":req.body.password,
-         "email":req.body.email,      
-         "created_date_time":today,
-         "emloyee_id": '',
-         "created_by":'',
-         "custom_two":'',
-         "custom_three":'',
-         "custom_four":'',
-         "custome_five":'',
-         "custome_six":''
-       }
-       requestConnection.query('INSERT INTO ag_users SET ?',users, function (error, results, fields) {
-       if (error) {
-         console.log("error ocurred",error);
-         res.send({
-           "code":400,
-           "failed":"error ocurred"
-         })
-       }else{
-         console.log('The solution is: ', results);
-         res.send({
-           "code":200,
-           "success":"user registered sucessfully"
-             });
-       }
-       });
+        var today = new Date();
+        var users={
+            "username":req.body.username,
+            "password":req.body.password,
+            "email":req.body.email,      
+            "created_date_time":today,
+            "emloyee_id": '',
+            "created_by":'',
+            "custom_two":'',
+            "custom_three":'',
+            "custom_four":'',
+            "custome_five":'',
+            "custome_six":''
+        }
+        requestConnection.query('INSERT INTO ag_users SET ?',users, function (error, results, fields) {
+        if (error) {
+            console.log("error ocurred",error);
+            res.send({
+            "code":400,
+            "failed":"error ocurred"
+            })
+        }else{
+            console.log('The solution is: ', results);
+            res.send({
+            "code":200,
+            "success":"user registered sucessfully"
+                });
+        }
+        });
      })
 
     app.post('/login',function(req,res){
@@ -293,4 +295,5 @@ requestConnection.connect(function(err){
             }
         })
     })
+  }  
 });
